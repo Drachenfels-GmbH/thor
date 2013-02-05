@@ -32,4 +32,8 @@ class Thor
   #
   class PrivateMethodEncodedError < Error
   end
+
+  # Raised when a parameter validation fails
+  class ValidationError < Error
+  end
 end

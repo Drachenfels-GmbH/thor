@@ -2,7 +2,7 @@ class Thor
   class Argument #:nodoc:
     VALID_TYPES = [ :numeric, :hash, :array, :string ]
 
-    attr_reader :name, :description, :enum, :required, :type, :default, :banner
+    attr_reader :name, :description, :enum, :required, :type, :default, :banner, :validations
     alias :human_name :name
 
     def initialize(name, options={})
@@ -20,6 +20,7 @@ class Thor
       @default     = options[:default]
       @banner      = options[:banner] || default_banner
       @enum        = options[:enum]
+      @validations = options[:validations]
 
       validate! # Trigger specific validations
     end
@@ -39,6 +40,35 @@ class Thor
       else
         default
       end
+    end
+
+    def has_validations?
+      ! @validations.nil?
+    end
+
+    def validate_value!(value)
+      if has_validations?
+        @validations.each_pair do |message, validation|
+          validation_result = nil
+          if validation.respond_to?(:call)
+            validation_result = validation.call(value)
+          elsif validation.respond_to?(:=~)
+            validation_result = (validation =~ value)
+          end
+          if validation_result.nil? || (validation_result == false)
+            handle_validation_error(message, value)
+          end
+        end
+      end
+    end
+
+    def handle_validation_error(message, value) #:nodoc:
+      msg = "Validation failed for argument value: \n"
+      msg << "  Argument: #{name}\n"
+      msg << "  Value: #{value}\n"
+      msg << "  Error: #{message}\n"
+      msg << "  Usage: #{usage} # #{description}\n"
+      raise InvocationError, msg
     end
 
     protected

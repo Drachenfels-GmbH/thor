@@ -19,10 +19,10 @@ class Thor
     # implementation to create custom tasks.
     def run(instance, args=[])
       arity = nil
-
       if private_method?(instance)
         instance.class.handle_no_task_error(name)
       elsif public_method?(instance)
+        validate_options!(instance)
         arity = instance.method(name).arity
         instance.__send__(name, *args)
       elsif local_method?(instance, :method_missing)
@@ -36,6 +36,10 @@ class Thor
     rescue NoMethodError => e
       handle_no_method_error?(instance, e, caller) ?
         instance.class.handle_no_task_error(name) : (raise e)
+    rescue ValidationError => e
+      p options
+      handle_validation_error?(instance, e, caller) ?
+        instance.class.handle_validation_error(self, e) : (raise e)
     end
 
     # Returns the formatted usage by injecting given required arguments
@@ -66,6 +70,16 @@ class Thor
     end
 
   protected
+    def validate_options!(instance)
+      if ! options.nil?
+        options.each_pair do |name, option|
+          value =  instance.options[name]
+          if ! value.nil?
+            option.validate_value!(value)
+          end
+        end
+      end
+    end
 
     def not_debugging?(instance)
       !(instance.class.respond_to?(:debugging) && instance.class.debugging)
@@ -92,6 +106,14 @@ class Thor
     def sans_backtrace(backtrace, caller) #:nodoc:
       saned  = backtrace.reject { |frame| frame =~ FILE_REGEXP || (frame =~ /\.java:/ && RUBY_PLATFORM =~ /java/) }
       saned -= caller
+    end
+
+    def handle_validation_error?(instance, error, caller)
+      not_debugging?(instance) && begin
+        saned = sans_backtrace(error.backtrace, caller)
+        # Ruby 1.9 always include the called method in the backtrace
+        saned.empty? || (saned.size == 1 && RUBY_VERSION >= "1.9")
+      end
     end
 
     def handle_argument_error?(instance, error, caller)
