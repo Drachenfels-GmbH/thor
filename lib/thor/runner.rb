@@ -44,7 +44,7 @@ class Thor::Runner < Thor #:nodoc:
     # task in said directory.
     begin
       if File.directory?(File.expand_path(name))
-        raise Error, "Cannot symlink directory"
+        raise Error, "Cannot symlink a directory"
       else
         base, package = name, :file
         contents      = open(name) {|input| input.read }
@@ -75,7 +75,7 @@ class Thor::Runner < Thor #:nodoc:
     say "Linking thor file in your system repository"
     destination = File.join(thor_root, thor_yaml[as][:filename])
 
-    FileUtils.ln_s(name, destination)
+    FileUtils.ln_s(location, destination)
 
     thor_yaml[as][:filename] # Indicate success
   end
@@ -256,7 +256,6 @@ class Thor::Runner < Thor #:nodoc:
     #
     def initialize_thorfiles(relevant_to=nil, skip_lookup=false)
       thorfiles(relevant_to, skip_lookup).each do |f|
-        puts "Initialize #{f}: load: #{Thor::Base.subclass_files.keys.include?(File.expand_path(f))}"
         Thor::Util.load_thorfile(f, nil, options[:debug]) unless Thor::Base.subclass_files.keys.include?(File.expand_path(f))
       end
     end
