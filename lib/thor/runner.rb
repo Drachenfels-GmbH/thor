@@ -36,6 +36,51 @@ class Thor::Runner < Thor #:nodoc:
     klass.start(args, :shell => self.shell)
   end
 
+  desc "link NAME", "Install a Thor file as symlink into your system tasks"
+  def link(name)
+    initialize_thorfiles
+
+    # If a directory name is provided as the argument, look for a 'main.thor'
+    # task in said directory.
+    begin
+      if File.directory?(File.expand_path(name))
+        raise Error, "Cannot symlink directory"
+      else
+        base, package = name, :file
+        contents      = open(name) {|input| input.read }
+      end
+    rescue OpenURI::HTTPError
+      raise Error, "Error opening URI '#{name}'"
+    rescue Errno::ENOENT
+      raise Error, "Error opening file '#{name}'"
+    end
+
+    say "Your Thorfile contains:"
+    say contents
+
+    unless options["force"]
+      return false if no?("Do you wish to continue [y/N]?")
+    end
+
+    as = File.basename(name)
+    location = File.expand_path(name)
+
+    thor_yaml[as] = {
+        :filename   => as,
+        :location   => location,
+        :namespaces => Thor::Util.namespaces_in_content(contents, base)
+    }
+
+    save_yaml(thor_yaml)
+    say "Linking thor file in your system repository"
+    destination = File.join(thor_root, thor_yaml[as][:filename])
+
+    FileUtils.ln_s(name, destination)
+
+    thor_yaml[as][:filename] # Indicate success
+  end
+
+
   desc "install NAME", "Install an optionally named Thor file into your system tasks"
   method_options :as => :string, :relative => :boolean, :force => :boolean
   def install(name)
@@ -211,6 +256,7 @@ class Thor::Runner < Thor #:nodoc:
     #
     def initialize_thorfiles(relevant_to=nil, skip_lookup=false)
       thorfiles(relevant_to, skip_lookup).each do |f|
+        puts "Initialize #{f}: load: #{Thor::Base.subclass_files.keys.include?(File.expand_path(f))}"
         Thor::Util.load_thorfile(f, nil, options[:debug]) unless Thor::Base.subclass_files.keys.include?(File.expand_path(f))
       end
     end
