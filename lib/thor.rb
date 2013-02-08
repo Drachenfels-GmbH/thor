@@ -3,6 +3,16 @@ require 'thor/base'
 
 class Thor
   class << self
+    # Hide this class from the thor commandline output
+    @hidden = false
+    def hide
+      @hidden = true
+    end
+
+    def hidden?
+      @hidden
+    end
+
     # Sets the default task when thor is executed without an explicit task to be called.
     #
     # ==== Parameters

@@ -6,6 +6,17 @@ require 'thor/base'
 # tasks.
 class Thor::Group
   class << self
+
+    # Hide this class from the thor commandline output
+    @hidden = false
+    def hide
+      @hidden = true
+    end
+
+    def hidden?
+      @hidden
+    end
+
     # The description for this Thor::Group. If none is provided, but a source root
     # exists, tries to find the USAGE one folder above it, otherwise searches
     # in the superclass.

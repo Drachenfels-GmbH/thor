@@ -205,7 +205,7 @@ class Thor::Runner < Thor #:nodoc:
     group  = options[:group] || "standard"
 
     klasses = Thor::Base.subclasses.select do |k|
-      (options[:all] || k.group == group) && k.namespace =~ search
+      (options[:all] || k.group == group) && k.namespace =~ search && ! k.hidden?
     end
 
     display_klasses(false, false, klasses)
@@ -325,7 +325,7 @@ class Thor::Runner < Thor #:nodoc:
       show_modules if with_modules && !thor_yaml.empty?
 
       list = Hash.new { |h,k| h[k] = [] }
-      groups = klasses.select { |k| k.ancestors.include?(Thor::Group) }
+      groups = klasses.select { |k| k.ancestors.include?(Thor::Group) && ! k.hidden? }
 
       # Get classes which inherit from Thor
       (klasses - groups).each { |k| list[k.namespace.split(":").first] += k.printable_tasks(false) }
